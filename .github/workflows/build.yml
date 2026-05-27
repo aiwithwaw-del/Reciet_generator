@@ -15,6 +15,14 @@ jobs:
       with:
         flutter-version: '3.24.0'
     
+    - name: Create Flutter project structure
+      run: |
+        flutter create --project-name receipt_generator temp_project
+        cp temp_project/lib/main.dart lib/main.dart
+        cp -r temp_project/android .
+        cp -r temp_project/ios .
+        rm -rf temp_project
+    
     - run: flutter pub get
     
     - run: flutter build apk --release
