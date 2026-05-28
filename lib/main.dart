@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'models/customer.dart';
 import 'services/database.dart';
 import 'screens/home_screen.dart';
 
