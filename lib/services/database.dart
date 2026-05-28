@@ -1,109 +1,88 @@
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../models/customer.dart';
 import '../models/receipt.dart';
 
 class DatabaseService {
-  static late Box<Customer> customersBox;
-  static late Box<Receipt> receiptsBox;
+  static SharedPreferences? _prefs;
+  static const String _customersKey = 'customers';
+  static const String _receiptsKey = 'receipts';
 
   Future<void> init() async {
-    await Hive.initFlutter();
-    Hive.registerAdapter(CustomerAdapter());
-    Hive.registerAdapter(ReceiptItemAdapter());
-    Hive.registerAdapter(ReceiptAdapter());
-    customersBox = await Hive.openBox<Customer>('customers');
-    receiptsBox = await Hive.openBox<Receipt>('receipts');
+    _prefs = await SharedPreferences.getInstance();
   }
 
   // ========== CUSTOMER METHODS ==========
+  List<Customer> _getCustomers() {
+    final data = _prefs?.getStringList(_customersKey) ?? [];
+    return data.map((json) => Customer.fromJson(jsonDecode(json))).toList();
+  }
+
+  Future<void> _saveCustomers(List<Customer> customers) async {
+    final data = customers.map((c) => jsonEncode(c.toJson())).toList();
+    await _prefs?.setStringList(_customersKey, data);
+  }
+
   Future<void> addCustomer(Customer customer) async {
-    await customersBox.put(customer.id, customer);
+    final customers = _getCustomers();
+    customers.add(customer);
+    await _saveCustomers(customers);
   }
 
   Future<void> updateCustomer(Customer customer) async {
-    await customersBox.put(customer.id, customer);
-  }
-
-  Future<void> deleteCustomer(String id) async {
-    await customersBox.delete(id);
+    final customers = _getCustomers();
+    final index = customers.indexWhere((c) => c.id == customer.id);
+    if (index != -1) {
+      customers[index] = customer;
+      await _saveCustomers(customers);
+    }
   }
 
   List<Customer> getAllCustomers() {
-    return customersBox.values.toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    return _getCustomers()..sort((a, b) => a.name.compareTo(b.name));
   }
 
   Customer? getCustomer(String id) {
-    return customersBox.get(id);
+    return _getCustomers().firstWhere((c) => c.id == id, orElse: () => Customer(name: '', phone: ''));
   }
 
   // ========== RECEIPT METHODS ==========
-  Future<void> addReceipt(Receipt receipt) async {
-    await receiptsBox.put(receipt.id, receipt);
-    
-    final customer = getCustomer(receipt.customerId);
-    if (customer != null) {
-      customer.balance += receipt.loanAmount;
-      await customer.save();
-    }
+  List<Receipt> _getReceipts() {
+    final data = _prefs?.getStringList(_receiptsKey) ?? [];
+    return data.map((json) => Receipt.fromJson(jsonDecode(json))).toList();
   }
 
-  Future<void> updateReceipt(Receipt receipt) async {
-    final oldReceipt = getReceipt(receipt.id);
-    if (oldReceipt != null) {
-      final oldCustomer = getCustomer(oldReceipt.customerId);
-      if (oldCustomer != null) {
-        oldCustomer.balance -= oldReceipt.loanAmount;
-        await oldCustomer.save();
-      }
-    }
+  Future<void> _saveReceipts(List<Receipt> receipts) async {
+    final data = receipts.map((r) => jsonEncode(r.toJson())).toList();
+    await _prefs?.setStringList(_receiptsKey, data);
+  }
+
+  Future<void> addReceipt(Receipt receipt) async {
+    final receipts = _getReceipts();
+    receipts.add(receipt);
+    await _saveReceipts(receipts);
     
-    await receiptsBox.put(receipt.id, receipt);
-    
+    // Update customer balance
     final customer = getCustomer(receipt.customerId);
     if (customer != null) {
       customer.balance += receipt.loanAmount;
-      await customer.save();
+      await updateCustomer(customer);
     }
   }
 
   List<Receipt> getAllReceipts() {
-    return receiptsBox.values.toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
+    return _getReceipts()..sort((a, b) => b.date.compareTo(a.date));
   }
 
   List<Receipt> getReceiptsByCustomer(String customerId) {
-    return receiptsBox.values
+    return _getReceipts()
         .where((r) => r.customerId == customerId)
         .toList()
       ..sort((a, b) => b.date.compareTo(a.date));
   }
 
-  Receipt? getReceipt(String id) {
-    return receiptsBox.get(id);
-  }
-
-  Future<void> deleteReceipt(String id) async {
-    final receipt = getReceipt(id);
-    if (receipt != null) {
-      final customer = getCustomer(receipt.customerId);
-      if (customer != null) {
-        customer.balance -= receipt.loanAmount;
-        await customer.save();
-      }
-      await receiptsBox.delete(id);
-    }
-  }
-
-  // ========== STATS ==========
   double getTotalBalance() {
     return getAllCustomers().fold(0.0, (sum, c) => sum + c.balance);
-  }
-
-  double getTotalLoans() {
-    return getAllCustomers()
-        .where((c) => c.balance > 0)
-        .fold(0.0, (sum, c) => sum + c.balance);
   }
 
   double getTotalSales() {
