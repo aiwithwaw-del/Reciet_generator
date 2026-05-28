@@ -27,10 +27,10 @@ class Receipt extends HiveObject {
   double paidAmount;
 
   @HiveField(7)
-  double loanAmount; // total - paid
+  double loanAmount;
 
   @HiveField(8)
-  String status; // "Paid", "Partial", "Credit"
+  String status;
 
   Receipt({
     String? id,
