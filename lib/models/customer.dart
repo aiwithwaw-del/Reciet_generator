@@ -1,24 +1,11 @@
-import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 
-part 'customer.g.dart';
-
-@HiveType(typeId: 0)
-class Customer extends HiveObject {
-  @HiveField(0)
-  String id;
-
-  @HiveField(1)
+class Customer {
+  final String id;
   String name;
-
-  @HiveField(2)
   String phone;
-
-  @HiveField(3)
-  double balance; // Positive = owes money, Negative = credit
-
-  @HiveField(4)
-  DateTime createdAt;
+  double balance;
+  final DateTime createdAt;
 
   Customer({
     String? id,
@@ -28,6 +15,22 @@ class Customer extends HiveObject {
   })  : id = id ?? const Uuid().v4(),
         createdAt = DateTime.now();
 
-  @override
-  String toString() => 'Customer($name, Balance: $balance)';
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'phone': phone,
+      'balance': balance,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
+  factory Customer.fromJson(Map<String, dynamic> json) {
+    return Customer(
+      id: json['id'],
+      name: json['name'],
+      phone: json['phone'],
+      balance: json['balance'],
+    );
+  }
 }
