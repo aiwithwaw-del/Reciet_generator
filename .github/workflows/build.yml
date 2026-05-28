@@ -48,17 +48,11 @@ jobs:
         # Install dependencies
         flutter pub get
         
-        # Run build runner for Hive with verbose output
-        echo "Running build_runner..."
-        flutter pub run build_runner build --delete-conflicting-outputs || {
-          echo "Build runner failed. Continuing anyway..."
-        }
+        # List files for debugging
+        echo "Files in lib:"
+        find lib -type f
         
-        # List generated files
-        echo "Generated files:"
-        find lib -name "*.g.dart" || echo "No .g.dart files found"
-    
-    - run: flutter build apk --release --verbose
+    - run: flutter build apk --release
     
     - uses: actions/upload-artifact@v4
       with:
