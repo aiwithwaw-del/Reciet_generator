@@ -23,8 +23,20 @@ jobs:
         cp -r temp_project/ios .
         rm -rf temp_project
         
-        # Fix Kotlin version compatibility
-        sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = '\''1.9.10'\''/' android/build.gradle
+        # Fix Kotlin version in settings.gradle (newer Flutter projects)
+        if [ -f android/settings.gradle ]; then
+          sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.10"/' android/settings.gradle
+        fi
+        
+        # Fix Kotlin version in build.gradle (older Flutter projects)
+        if [ -f android/build.gradle ]; then
+          sed -i "s/ext.kotlin_version = .*/ext.kotlin_version = '1.9.10'/" android/build.gradle
+        fi
+        
+        # Fix Gradle version compatibility
+        if [ -f android/gradle/wrapper/gradle-wrapper.properties ]; then
+          sed -i 's/distributionUrl=.*/distributionUrl=https\:\/\/services.gradle.org\/distributions\/gradle-8.0-all.zip/' android/gradle/wrapper/gradle-wrapper.properties
+        fi
     
     - run: flutter pub get
     
