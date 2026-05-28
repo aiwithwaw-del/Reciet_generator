@@ -41,7 +41,6 @@ class DatabaseService {
   Future<void> addReceipt(Receipt receipt) async {
     await receiptsBox.put(receipt.id, receipt);
     
-    // Update customer balance
     final customer = getCustomer(receipt.customerId);
     if (customer != null) {
       customer.balance += receipt.loanAmount;
@@ -52,7 +51,6 @@ class DatabaseService {
   Future<void> updateReceipt(Receipt receipt) async {
     final oldReceipt = getReceipt(receipt.id);
     if (oldReceipt != null) {
-      // Remove old balance impact
       final oldCustomer = getCustomer(oldReceipt.customerId);
       if (oldCustomer != null) {
         oldCustomer.balance -= oldReceipt.loanAmount;
@@ -60,10 +58,8 @@ class DatabaseService {
       }
     }
     
-    // Save new receipt
     await receiptsBox.put(receipt.id, receipt);
     
-    // Add new balance impact
     final customer = getCustomer(receipt.customerId);
     if (customer != null) {
       customer.balance += receipt.loanAmount;
@@ -90,7 +86,6 @@ class DatabaseService {
   Future<void> deleteReceipt(String id) async {
     final receipt = getReceipt(id);
     if (receipt != null) {
-      // Remove balance impact
       final customer = getCustomer(receipt.customerId);
       if (customer != null) {
         customer.balance -= receipt.loanAmount;
