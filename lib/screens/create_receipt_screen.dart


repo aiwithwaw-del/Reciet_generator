@@ -13,7 +13,6 @@ class CreateReceiptScreen extends StatefulWidget {
 }
 
 class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
-  final _formKey = GlobalKey<FormState>();
   final List<ReceiptItem> _items = [];
   final _nameCtrl = TextEditingController();
   final _qtyCtrl = TextEditingController();
@@ -57,7 +56,7 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
 
     if (paid > total) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Paid amount cannot exceed total'), backgroundColor: Colors.red),
+        const SnackBar(content: Text('Paid cannot exceed total'), backgroundColor: Colors.red),
       );
       return;
     }
@@ -76,7 +75,7 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Receipt created! Balance: UGX ${NumberFormat("#,##0").format(receipt.loanAmount)}'),
+            content: Text('Receipt saved! Balance: UGX ${NumberFormat("#,##0").format(receipt.loanAmount)}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -100,7 +99,6 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
       appBar: AppBar(title: Text('Receipt - ${widget.customer.name}')),
       body: Column(
         children: [
-          // Items List
           Expanded(
             child: _items.isEmpty
                 ? const Center(child: Text('No items added', style: TextStyle(color: Colors.grey)))
@@ -126,8 +124,6 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
                     },
                   ),
           ),
-
-          // Add Item Form
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(color: Colors.grey[100], border: Border(top: BorderSide(color: Colors.grey[300]!))),
@@ -147,8 +143,6 @@ class _CreateReceiptScreenState extends State<CreateReceiptScreen> {
               ],
             ),
           ),
-
-          // Summary & Save
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: const Offset(0, -2))]),
