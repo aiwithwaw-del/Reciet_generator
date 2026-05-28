@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../models/customer.dart';
 import '../services/database.dart';
 import 'add_customer_screen.dart';
+import 'create_receipt_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -61,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           await Navigator.push(context, MaterialPageRoute(builder: (_) => const AddCustomerScreen()));
-          _loadCustomers(); // 🔑 REFRESH AFTER RETURNING
+          _loadCustomers();
         },
         icon: const Icon(Icons.person_add),
         label: const Text('Add Customer'),
@@ -120,9 +121,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(c.balance > 0 ? 'Owes' : 'Credit', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
               ],
             ),
-            onTap: () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => AddCustomerScreen(customer: c)));
-              _loadCustomers();
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                builder: (_) => SafeArea(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.receipt_long, color: Colors.blue),
+                        title: const Text('Create Receipt'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => CreateReceiptScreen(customer: c)));
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.edit, color: Colors.orange),
+                        title: const Text('Edit Customer'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => AddCustomerScreen(customer: c)));
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
             },
           ),
         );
