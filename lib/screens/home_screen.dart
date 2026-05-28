@@ -1,15 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/customer.dart';
 import '../services/database.dart';
 import 'add_customer_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final DatabaseService _db = DatabaseService();
+  List<Customer> _customers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCustomers();
+  }
+
+  Future<void> _loadCustomers() async {
+    try {
+      final list = _db.getAllCustomers();
+      list.sort((a, b) => a.name.compareTo(b.name));
+      setState(() {
+        _customers = list;
+      });
+    } catch (e) {
+      debugPrint('Load error: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final totalBalance = _customers.fold(0.0, (sum, c) => sum + c.balance);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Receipt & Balance Tracker'),
@@ -17,21 +44,24 @@ class HomeScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Summary Cards
-          _buildSummaryCards(context),
-          
-          // Customer List
-          Expanded(
-            child: _buildCustomerList(context),
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Theme.of(context).primaryColor.withOpacity(0.1),
+            child: Row(
+              children: [
+                Expanded(child: _buildCard('Customers', _customers.length.toString(), Icons.people, Colors.blue)),
+                const SizedBox(width: 8),
+                Expanded(child: _buildCard('Total Balance', 'UGX ${NumberFormat("#,##0").format(totalBalance)}', Icons.account_balance_wallet, Colors.green)),
+              ],
+            ),
           ),
+          Expanded(child: _customers.isEmpty ? _buildEmpty() : _buildList()),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddCustomerScreen()),
-          );
+        onPressed: () async {
+          await Navigator.push(context, MaterialPageRoute(builder: (_) => const AddCustomerScreen()));
+          _loadCustomers(); // 🔑 REFRESH AFTER RETURNING
         },
         icon: const Icon(Icons.person_add),
         label: const Text('Add Customer'),
@@ -39,147 +69,64 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryCards(BuildContext context) {
-    final db = DatabaseService();
-    final totalBalance = db.getTotalBalance();
-    final totalLoans = db.getTotalLoans();
-    final customerCount = db.getAllCustomers().length;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Theme.of(context).primaryColor.withOpacity(0.1),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildSummaryCard(
-              'Customers',
-              customerCount.toString(),
-              Icons.people,
-              Colors.blue,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _buildSummaryCard(
-              'Total Balance',
-              'UGX ${NumberFormat("#,##0").format(totalBalance)}',
-              Icons.account_balance_wallet,
-              Colors.green,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(String label, String value, IconData icon, Color color) {
+  Widget _buildCard(String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
-        ],
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: const Offset(0, 2))]),
+      child: Column(children: [
+        Icon(icon, color: color, size: 24),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+      ]),
+    );
+  }
+
+  Widget _buildEmpty() {
+    return Center(
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          Text(
-            label,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-          ),
+          Icon(Icons.person_off, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text('No customers yet', style: TextStyle(fontSize: 18, color: Colors.grey[600])),
+          const SizedBox(height: 8),
+          Text('Tap "Add Customer" to get started', style: TextStyle(color: Colors.grey[500])),
         ],
       ),
     );
   }
 
-  Widget _buildCustomerList(BuildContext context) {
-    final db = DatabaseService();
-    final customers = db.getAllCustomers();
-
-    if (customers.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.person_off, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'No customers yet',
-              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Tap "Add Customer" to get started',
-              style: TextStyle(color: Colors.grey[500]),
-            ),
-          ],
-        ),
-      );
-    }
-
+  Widget _buildList() {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: customers.length,
+      itemCount: _customers.length,
       itemBuilder: (context, index) {
-        final customer = customers[index];
-        return _buildCustomerCard(context, customer);
-      },
-    );
-  }
-
-  Widget _buildCustomerCard(BuildContext context, Customer customer) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: customer.balance > 0 ? Colors.orange : Colors.green,
-          child: Text(
-            customer.name[0].toUpperCase(),
-            style: const TextStyle(color: Colors.white),
+        final c = _customers[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: c.balance > 0 ? Colors.orange : Colors.green,
+              child: Text(c.name[0].toUpperCase(), style: const TextStyle(color: Colors.white)),
+            ),
+            title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(c.phone),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text('UGX ${NumberFormat("#,##0").format(c.balance)}', style: TextStyle(fontWeight: FontWeight.bold, color: c.balance > 0 ? Colors.red : Colors.green)),
+                Text(c.balance > 0 ? 'Owes' : 'Credit', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              ],
+            ),
+            onTap: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => AddCustomerScreen(customer: c)));
+              _loadCustomers();
+            },
           ),
-        ),
-        title: Text(
-          customer.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(customer.phone),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              'UGX ${NumberFormat("#,##0").format(customer.balance)}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: customer.balance > 0 ? Colors.red : Colors.green,
-              ),
-            ),
-            Text(
-              customer.balance > 0 ? 'Owes' : 'Credit',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            ),
-          ],
-        ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AddCustomerScreen(customer: customer),
-            ),
-          );
-        },
-      ),
+        );
+      },
     );
   }
 }
