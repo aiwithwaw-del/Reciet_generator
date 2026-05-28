@@ -43,7 +43,11 @@ class DatabaseService {
   }
 
   Customer? getCustomer(String id) {
-    return _getCustomers().firstWhere((c) => c.id == id, orElse: () => Customer(name: '', phone: ''));
+    try {
+      return _getCustomers().firstWhere((c) => c.id == id);
+    } catch (e) {
+      return null;
+    }
   }
 
   // ========== RECEIPT METHODS ==========
