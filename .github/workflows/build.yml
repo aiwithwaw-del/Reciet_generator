@@ -15,33 +15,41 @@ jobs:
       with:
         flutter-version: '3.24.0'
     
-    - name: Create Flutter project structure
+    - name: Create Flutter project and copy files
       run: |
+        # Create temp Flutter project
         flutter create --project-name receipt_generator temp_project
-        cp temp_project/lib/main.dart lib/main.dart
+        
+        # Copy Android/iOS native files
         cp -r temp_project/android .
         cp -r temp_project/ios .
-        rm -rf temp_project
         
-        # Fix Kotlin version in settings.gradle (newer Flutter projects)
-        if [ -f android/settings.gradle ]; then
-          sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.10"/' android/settings.gradle
-        fi
+        # Fix Kotlin version
+        sed -i 's/id "org.jetbrains.kotlin.android" version "[^"]*"/id "org.jetbrains.kotlin.android" version "1.9.10"/' android/settings.gradle || true
+        sed -i "s/ext.kotlin_version = .*/ext.kotlin_version = '1.9.10'/" android/build.gradle || true
         
-        # Fix Kotlin version in build.gradle (older Flutter projects)
-        if [ -f android/build.gradle ]; then
-          sed -i "s/ext.kotlin_version = .*/ext.kotlin_version = '1.9.10'/" android/build.gradle
-        fi
+        # Clean temp project
+        rm -rf temp_project/android
+        rm -rf temp_project/ios
+        rm -rf temp_project/test
         
-        # Fix Gradle version compatibility
-        if [ -f android/gradle/wrapper/gradle-wrapper.properties ]; then
-          sed -i 's/distributionUrl=.*/distributionUrl=https\:\/\/services.gradle.org\/distributions\/gradle-8.0-all.zip/' android/gradle/wrapper/gradle-wrapper.properties
-        fi
-    
-    - run: flutter pub get
-    
-    - name: Run build runner
-      run: flutter pub run build_runner build --delete-conflicting-outputs
+        # Copy our app files (lib folder, pubspec.yaml)
+        cp -r lib/* temp_project/lib/
+        cp pubspec.yaml temp_project/
+        
+        # Replace the project folder
+        rm -rf lib
+        mv temp_project receipt_app
+        
+        # Move to root
+        mv receipt_app/* .
+        rm -rf receipt_app
+        
+        # Install dependencies
+        flutter pub get
+        
+        # Run build runner for Hive
+        flutter pub run build_runner build --delete-conflicting-outputs
     
     - run: flutter build apk --release
     
