@@ -1,3 +1,5 @@
+import 'package:uuid/uuid.dart';
+
 class Receipt {
   final String id;
   final String customerId;
@@ -10,12 +12,13 @@ class Receipt {
   final String status;
 
   Receipt({
-    required this.id,
+    String? id,
     required this.customerId,
     required this.customerName,
     required this.items,
-    required this.paidAmount,
-  })  : date = DateTime.now(),
+    this.paidAmount = 0.0,
+  })  : id = id ?? const Uuid().v4(),
+        date = DateTime.now(),
         totalAmount = items.fold(0.0, (sum, item) => sum + item.subtotal),
         loanAmount = (items.fold(0.0, (sum, item) => sum + item.subtotal)) - paidAmount,
         status = paidAmount >= items.fold(0.0, (sum, item) => sum + item.subtotal)
